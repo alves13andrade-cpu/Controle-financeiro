@@ -325,11 +325,11 @@ function fmt(n){ return 'R$ ' + (Number(n)||0).toLocaleString('pt-BR', {minimumF
 function uid(){ return 'e' + Date.now() + Math.floor(Math.random()*1000); }
 
 async function localGet(key){
-  try{ const r = await window.storage.get(key, false); return r ? JSON.parse(r.value) : null; }
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
   catch(e){ return null; }
 }
 async function localSet(key, value){
-  try{ await window.storage.set(key, JSON.stringify(value), false); }
+  try{ localStorage.setItem(key, JSON.stringify(value)); }
   catch(e){ console.error('storage error', e); }
 }
 
