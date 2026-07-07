@@ -192,6 +192,26 @@
         </div>
       </div>
       <button class="blue" onclick="addAccount()">Adicionar conta</button>
+
+      <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;">
+      <label style="margin-bottom:10px;">Transferir entre contas</label>
+      <div class="row3">
+        <div>
+          <label>De</label>
+          <select id="tr-from"></select>
+        </div>
+        <div>
+          <label>Para</label>
+          <select id="tr-to"></select>
+        </div>
+        <div>
+          <label>Valor (R$)</label>
+          <input id="tr-value" type="number" step="0.01" placeholder="0,00" />
+        </div>
+      </div>
+      <input id="tr-desc" placeholder="descrição (opcional)" />
+      <button class="secondary" onclick="addTransfer()">Transferir</button>
+      <div id="transfer-list" style="margin-top:10px;"></div>
     </div>
 
     <div class="card">
@@ -315,6 +335,7 @@ let savingsGoal = { target: 0, current: 0 };
 let accounts = [];
 let expensesCache = {};
 let incomesCache = {};
+let transfersCache = {};
 
 function monthKey(d){ return '' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0'); }
 function monthLabel(d){
@@ -376,6 +397,8 @@ function buildAccountSelects(){
     : accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   document.getElementById('inc-conta').innerHTML = opts;
   document.getElementById('exp-conta').innerHTML = opts;
+  document.getElementById('tr-from').innerHTML = opts;
+  document.getElementById('tr-to').innerHTML = opts;
 }
 
 function renderAccounts(){
@@ -423,6 +446,41 @@ async function editAccountBalance(id){
 async function removeAccount(id){
   try{ await callScript('POST', { action: 'deleteAccount', id }); } catch(e){}
   await loadFromSheet();
+}
+
+async function addTransfer(){
+  const from = document.getElementById('tr-from').value;
+  const to = document.getElementById('tr-to').value;
+  const value = parseFloat(document.getElementById('tr-value').value);
+  const desc = document.getElementById('tr-desc').value.trim();
+  if(!from || !to || from === to || !value || value <= 0) return;
+  const mKey = monthKey(currentMonth);
+  const transfer = { id: uid(), month: mKey, date: new Date().toISOString(), from, to, desc, value };
+  try{
+    await callScript('POST', { action: 'transfer', transfer });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); return; }
+  document.getElementById('tr-value').value = '';
+  document.getElementById('tr-desc').value = '';
+  await loadFromSheet();
+}
+
+async function removeTransfer(id){
+  try{ await callScript('POST', { action: 'deleteTransfer', id }); } catch(e){}
+  await loadFromSheet();
+}
+
+function renderTransfers(){
+  const mKey = monthKey(currentMonth);
+  const list = transfersCache[mKey] || [];
+  const el = document.getElementById('transfer-list');
+  el.innerHTML = list.length === 0 ? '' : list.map(t => `
+    <div class="acc-row" style="grid-template-columns: 1fr auto auto;">
+      <span class="acc-name">${accountName(t.from)} → ${accountName(t.to)}${t.desc ? ' · ' + t.desc : ''}</span>
+      <span class="acc-balance">${fmt(t.value)}</span>
+      <button class="secondary" onclick="removeTransfer('${t.id}')">✕</button>
+    </div>
+  `).join('');
 }
 
 async function saveBudgetConfig(){
@@ -506,6 +564,7 @@ async function loadFromSheet(){
   if(!scriptUrl){
     setConnStatus(false);
     renderAccounts();
+    renderTransfers();
     renderAll();
     return;
   }
@@ -516,9 +575,11 @@ async function loadFromSheet(){
     accounts = data.accounts || [];
     expensesCache[mKey] = data.expenses || [];
     incomesCache[mKey] = data.incomes || [];
+    transfersCache[mKey] = data.transfers || [];
     setConnStatus(true);
     buildCatLimitInputs();
     renderAccounts();
+    renderTransfers();
     document.getElementById('save-target').value = savingsGoal.target || '';
     document.getElementById('save-current').value = savingsGoal.current || '';
     renderSavings();
