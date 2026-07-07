@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAIXA — controle financeiro</title>
+<style>
+  :root{
+    --bg: #14171a;
+    --bg-panel: #1c2023;
+    --paper: #ece8de;
+    --ink: #26261f;
+    --ink-faint: #6b6858;
+    --green: #2f6b4f;
+    --green-dim: #234f3a;
+    --red: #b3402f;
+    --gold: #c9a227;
+    --line: #3a3f43;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: radial-gradient(circle at 20% 0%, #1e2226 0%, var(--bg) 55%);
+    color:var(--paper);
+    font-family: 'Courier New', ui-monospace, monospace;
+    min-height:100vh;
+    padding: 32px 16px 80px;
+  }
+  h1,h2,h3{
+    font-family: 'Arial Narrow', 'Helvetica Neue Condensed', Arial, sans-serif;
+    font-weight:800;
+    letter-spacing: 0.5px;
+    margin:0;
+  }
+  .brand{ text-align:center; margin-bottom:28px; }
+  .brand .tag{
+    display:inline-block; background: var(--green); color:#eef5ef;
+    font-size:11px; letter-spacing:2px; padding:3px 10px; border-radius:2px;
+    margin-bottom:10px; text-transform:uppercase;
+  }
+  .brand h1{ font-size:32px; text-transform:uppercase; color:#f2f0e8; }
+  .brand .sub{ color:var(--ink-faint); font-size:13px; margin-top:4px; letter-spacing:0.5px; }
+
+  .layout{
+    max-width: 1080px; margin:0 auto;
+    display:grid; grid-template-columns: 1fr 380px; gap:24px; align-items:start;
+  }
+  @media (max-width: 860px){ .layout{grid-template-columns: 1fr;} }
+
+  .card{
+    background: var(--bg-panel); border:1px solid var(--line);
+    border-radius:10px; padding:20px; margin-bottom:20px;
+  }
+  .card h2{
+    font-size:14px; text-transform:uppercase; color:#cfd6cf;
+    letter-spacing:1.5px; margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .card h2::before{ content:''; width:8px;height:8px; background:var(--green); display:inline-block; border-radius:1px; }
+  .card h2.income::before{ background: var(--gold); }
+  .card h2.accounts::before{ background: #6b8fb3; }
+
+  label{
+    display:block; font-size:11px; color:var(--ink-faint);
+    text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;
+    font-family: Arial, sans-serif;
+  }
+  input, select{
+    width:100%; background:#0f1113; border:1px solid var(--line); color:var(--paper);
+    padding:9px 10px; border-radius:6px; font-family: 'Courier New', monospace;
+    font-size:14px; margin-bottom:12px;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--green); }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3{ display:grid; grid-template-columns:1.4fr 1fr 0.8fr; gap:10px; }
+  .row4{ display:grid; grid-template-columns:1.2fr 0.8fr 0.9fr 0.7fr; gap:10px; }
+
+  button{
+    background: var(--green); color:#eef5ef; border:none; padding:10px 16px;
+    border-radius:6px; font-family: Arial, sans-serif; font-weight:700;
+    font-size:13px; letter-spacing:0.5px; cursor:pointer; width:100%;
+  }
+  button:hover{ background:#376b53; }
+  button.gold{ background: var(--gold); color:#26261f; }
+  button.gold:hover{ background:#dab535; }
+  button.blue{ background:#3f6a8a; }
+  button.blue:hover{ background:#4a7ba0; }
+  button.secondary{ background:transparent; border:1px solid var(--line); color:var(--ink-faint); }
+  button.secondary:hover{ color:#e8e4d8; border-color:#565b5f; }
+
+  .cat-limits{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .cat-limits .cl-row{ display:grid; grid-template-columns: 130px 1fr; gap:10px; align-items:center; }
+  .cat-limits label{ margin:0; font-size:12px; }
+
+  .acc-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .acc-row{
+    display:grid; grid-template-columns: 1fr 110px auto auto; gap:8px; align-items:center;
+    background:#0f1113; border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+  }
+  .acc-row .acc-name{ font-size:13px; color:#dfe4de; font-family:Arial, sans-serif; }
+  .acc-row .acc-balance{ font-size:13px; text-align:right; }
+  .acc-row .acc-balance.neg{ color: var(--red); }
+  .acc-row button{ width:auto; padding:6px 8px; font-size:11px; }
+
+  .receipt-wrap{ background: transparent; display:flex; justify-content:center; }
+  .receipt{
+    background: var(--paper); color: var(--ink); width:100%; max-width:420px;
+    padding: 22px 20px 30px; font-family: 'Courier New', monospace;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.35); position:relative; border-radius: 2px;
+  }
+  .receipt::before, .receipt::after{
+    content:''; position:absolute; left:0; right:0; height:12px;
+    background: radial-gradient(circle at 10px 6px, var(--bg) 6px, transparent 7px) repeat-x;
+    background-size: 20px 12px;
+  }
+  .receipt::before{ top:-6px; }
+  .receipt::after{ bottom:-6px; transform: rotate(180deg); }
+  .receipt h3{ text-align:center; font-size:16px; letter-spacing:1px; }
+  .receipt .rline{ text-align:center; font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .receipt hr{ border:none; border-top:1px dashed var(--ink-faint); margin:14px 0; }
+  .receipt .section-label{
+    font-size:10px; letter-spacing:1.5px; color:var(--ink-faint);
+    text-transform:uppercase; margin-bottom:6px; font-family:Arial, sans-serif;
+  }
+  .receipt .item{ display:flex; justify-content:space-between; gap:8px; font-size:13px; margin-bottom:6px; }
+  .receipt .item .desc{ flex:1; }
+  .receipt .item .desc .cat{ display:block; font-size:10px; color:var(--ink-faint); }
+  .receipt .item .val{ white-space:nowrap; }
+  .receipt .item.neg .val{ color: var(--red); }
+  .receipt .item.pos .val{ color: var(--green); }
+  .receipt .total{ display:flex; justify-content:space-between; font-weight:bold; font-size:15px; margin-top:8px; }
+  .receipt .saldo{ display:flex; justify-content:space-between; font-weight:bold; font-size:16px; margin-top:4px; }
+  .receipt .empty{ text-align:center; color:var(--ink-faint); font-size:12px; padding: 6px 0 14px; }
+  .del-x{ background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:11px; padding:0 0 0 8px; width:auto; }
+  .del-x:hover{ color:var(--red); }
+
+  .bar-row{ margin-bottom:12px; }
+  .bar-row .labels{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-family:Arial, sans-serif; }
+  .bar-row .labels .name{ color:#dfe4de; }
+  .bar-row .labels .amt{ color: var(--ink-faint); }
+  .bar-track{ background:#0f1113; border:1px solid var(--line); border-radius:5px; height:10px; overflow:hidden; }
+  .bar-fill{ height:100%; background: var(--green); transition: width 0.3s ease; }
+  .bar-fill.over{ background: var(--red); }
+
+  .savings-thermo{ background:#0f1113; border:1px solid var(--line); border-radius:8px; height:28px; overflow:hidden; margin-bottom:10px; position:relative; }
+  .savings-fill{ height:100%; background: linear-gradient(90deg, var(--green-dim), var(--gold)); transition: width 0.4s ease; }
+  .savings-label{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-family:Arial, sans-serif; font-weight:700; color:#f2f0e8; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+
+  .status-msg{ font-size:11px; color:var(--ink-faint); text-align:center; margin-top:6px; font-family:Arial, sans-serif; }
+  .month-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; font-family:Arial, sans-serif; }
+  .month-nav button{ width:auto; padding:6px 12px; }
+  .month-nav .m-label{ font-size:13px; color:#dfe4de; letter-spacing:0.5px; }
+
+  .conn-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .conn-dot.on{ background: var(--green); }
+  .conn-dot.off{ background: var(--red); }
+  .conn-row{ display:flex; align-items:center; font-size:11px; color:var(--ink-faint); font-family:Arial, sans-serif; margin-bottom:12px; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <span class="tag">Bichário Finance</span>
+  <h1>Caixa — Controle Financeiro</h1>
+  <div class="sub">contas · entradas variáveis · gastos do dia a dia · poupança</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT COLUMN -->
+  <div>
+    <div class="card">
+      <h2>Configurar sincronização</h2>
+      <label>URL do Apps Script (deployment /exec)</label>
+      <input id="script-url" placeholder="https://script.google.com/macros/s/..." />
+      <button class="secondary" onclick="saveScriptUrl()">Conectar</button>
+      <div class="conn-row" id="conn-status" style="margin-top:10px;">
+        <span class="conn-dot off"></span> não conectado
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="accounts">Contas</h2>
+      <div class="acc-list" id="acc-list"></div>
+      <div class="row3">
+        <div style="grid-column: span 2;">
+          <label>Nome da conta</label>
+          <input id="acc-name" placeholder="ex: conta parada, dinheiro em papel..." />
+        </div>
+        <div>
+          <label>Saldo inicial</label>
+          <input id="acc-balance" type="number" step="0.01" placeholder="0,00" />
+        </div>
+      </div>
+      <button class="blue" onclick="addAccount()">Adicionar conta</button>
+    </div>
+
+    <div class="card">
+      <h2 class="income">Registrar entrada</h2>
+      <div class="row4">
+        <div>
+          <label>Descrição</label>
+          <input id="inc-desc" placeholder="ex: mesada de julho" />
+        </div>
+        <div>
+          <label>Valor (R$)</label>
+          <input id="inc-value" type="number" step="0.01" placeholder="0,00" />
+        </div>
+        <div>
+          <label>Fonte</label>
+          <select id="inc-cat">
+            <option>Mesada</option>
+            <option>Bico/Freela</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div>
+          <label>Conta</label>
+          <select id="inc-conta"></select>
+        </div>
+      </div>
+      <button class="gold" onclick="addIncome()">Adicionar entrada</button>
+    </div>
+
+    <div class="card">
+      <h2>Lançar gasto</h2>
+      <div class="row4">
+        <div>
+          <label>Descrição</label>
+          <input id="exp-desc" placeholder="ex: mercado" />
+        </div>
+        <div>
+          <label>Valor (R$)</label>
+          <input id="exp-value" type="number" step="0.01" placeholder="0,00" />
+        </div>
+        <div>
+          <label>Categoria</label>
+          <select id="exp-cat"></select>
+        </div>
+        <div>
+          <label>Conta</label>
+          <select id="exp-conta"></select>
+        </div>
+      </div>
+      <button onclick="addExpense()">Adicionar ao recibo</button>
+    </div>
+
+    <div class="card">
+      <h2>Resumo do mês</h2>
+      <div class="month-nav">
+        <button class="secondary" onclick="changeMonth(-1)">‹ mês anterior</button>
+        <div class="m-label" id="month-label"></div>
+        <button class="secondary" onclick="changeMonth(1)">próximo mês ›</button>
+      </div>
+      <div id="bars-container"></div>
+      <div class="status-msg" id="summary-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Meta de poupança</h2>
+      <div class="row2">
+        <div>
+          <label>Meta (R$)</label>
+          <input id="save-target" type="number" step="0.01" />
+        </div>
+        <div>
+          <label>Guardado até agora (R$)</label>
+          <input id="save-current" type="number" step="0.01" />
+        </div>
+      </div>
+      <button class="secondary" onclick="updateSavings()">Salvar meta</button>
+      <div style="height:14px"></div>
+      <div class="savings-thermo">
+        <div class="savings-fill" id="savings-fill" style="width:0%"></div>
+        <div class="savings-label" id="savings-label">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <div class="card">
+      <h2>Limites por categoria</h2>
+      <div class="cat-limits" id="cat-limits"></div>
+      <button class="secondary" onclick="saveBudgetConfig()">Salvar limites</button>
+    </div>
+
+    <div class="receipt-wrap">
+      <div class="receipt">
+        <h3>RECIBO DO MÊS</h3>
+        <div class="rline" id="receipt-month"></div>
+        <hr>
+        <div class="section-label">Entradas</div>
+        <div id="receipt-incomes"></div>
+        <hr>
+        <div class="section-label">Gastos</div>
+        <div id="receipt-items"></div>
+        <hr>
+        <div class="total"><span>TOTAL GASTO</span><span id="receipt-total">R$ 0,00</span></div>
+        <div class="total"><span>TOTAL ENTRADAS</span><span id="receipt-income-total">R$ 0,00</span></div>
+        <div class="saldo"><span>SALDO DO MÊS</span><span id="receipt-saldo">R$ 0,00</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CATEGORIES = ['Alimentação','Transporte','Material escolar','Lazer','Assinaturas','Saúde','Outros'];
+let currentMonth = new Date();
+currentMonth.setDate(1);
+
+let scriptUrl = '';
+let budgetConfig = { limits: {} };
+let savingsGoal = { target: 0, current: 0 };
+let accounts = [];
+let expensesCache = {};
+let incomesCache = {};
+
+function monthKey(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabel(d){
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return meses[d.getMonth()] + ' de ' + d.getFullYear();
+}
+function fmt(n){ return 'R$ ' + (Number(n)||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function uid(){ return 'e' + Date.now() + Math.floor(Math.random()*1000); }
+
+async function localGet(key){
+  try{ const r = await window.storage.get(key, false); return r ? JSON.parse(r.value) : null; }
+  catch(e){ return null; }
+}
+async function localSet(key, value){
+  try{ await window.storage.set(key, JSON.stringify(value), false); }
+  catch(e){ console.error('storage error', e); }
+}
+
+function setConnStatus(ok){
+  const el = document.getElementById('conn-status');
+  el.innerHTML = ok
+    ? '<span class="conn-dot on"></span> conectado à planilha'
+    : '<span class="conn-dot off"></span> não conectado';
+}
+
+async function callScript(method, params){
+  if(!scriptUrl) throw new Error('sem url configurada');
+  if(method === 'GET'){
+    const url = scriptUrl + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url);
+    return res.json();
+  } else {
+    const res = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(params) });
+    return res.json();
+  }
+}
+
+async function saveScriptUrl(){
+  scriptUrl = document.getElementById('script-url').value.trim();
+  await localSet('apps-script-url', scriptUrl);
+  await loadFromSheet();
+}
+
+function buildCatSelect(){
+  document.getElementById('exp-cat').innerHTML = CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+function buildCatLimitInputs(){
+  document.getElementById('cat-limits').innerHTML = CATEGORIES.map(c => `
+    <div class="cl-row">
+      <label>${c}</label>
+      <input type="number" step="0.01" data-cat="${c}" class="cat-limit-input" value="${budgetConfig.limits[c] ?? ''}" placeholder="limite em R$">
+    </div>
+  `).join('');
+}
+
+function buildAccountSelects(){
+  const opts = accounts.length === 0
+    ? '<option value="">cadastre uma conta primeiro</option>'
+    : accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  document.getElementById('inc-conta').innerHTML = opts;
+  document.getElementById('exp-conta').innerHTML = opts;
+}
+
+function renderAccounts(){
+  const el = document.getElementById('acc-list');
+  el.innerHTML = accounts.length === 0
+    ? '<div class="status-msg">nenhuma conta cadastrada ainda</div>'
+    : accounts.map(a => `
+      <div class="acc-row">
+        <span class="acc-name">${a.name}</span>
+        <span class="acc-balance ${Number(a.balance) < 0 ? 'neg':''}">${fmt(a.balance)}</span>
+        <button class="secondary" onclick="editAccountBalance('${a.id}')">ajustar</button>
+        <button class="secondary" onclick="removeAccount('${a.id}')">✕</button>
+      </div>
+    `).join('');
+  buildAccountSelects();
+}
+
+async function addAccount(){
+  const name = document.getElementById('acc-name').value.trim();
+  const balance = parseFloat(document.getElementById('acc-balance').value) || 0;
+  if(!name) return;
+  try{
+    await callScript('POST', { action: 'addAccount', account: { id: uid(), name, balance } });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); return; }
+  document.getElementById('acc-name').value = '';
+  document.getElementById('acc-balance').value = '';
+  await loadFromSheet();
+}
+
+async function editAccountBalance(id){
+  const acc = accounts.find(a => a.id === id);
+  if(!acc) return;
+  const novo = prompt(`Ajustar saldo de "${acc.name}" (atual: ${fmt(acc.balance)})`, acc.balance);
+  if(novo === null) return;
+  const value = parseFloat(novo);
+  if(isNaN(value)) return;
+  try{
+    await callScript('POST', { action: 'setAccountBalance', id, balance: value });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); return; }
+  await loadFromSheet();
+}
+
+async function removeAccount(id){
+  try{ await callScript('POST', { action: 'deleteAccount', id }); } catch(e){}
+  await loadFromSheet();
+}
+
+async function saveBudgetConfig(){
+  document.querySelectorAll('.cat-limit-input').forEach(inp => {
+    budgetConfig.limits[inp.dataset.cat] = parseFloat(inp.value) || 0;
+  });
+  try{
+    await callScript('POST', { action: 'saveConfig', config: budgetConfig });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); }
+  renderAll();
+}
+
+async function addExpense(){
+  const desc = document.getElementById('exp-desc').value.trim() || 'gasto';
+  const value = parseFloat(document.getElementById('exp-value').value);
+  const cat = document.getElementById('exp-cat').value;
+  const conta = document.getElementById('exp-conta').value;
+  if(!value || value <= 0) return;
+  const mKey = monthKey(currentMonth);
+  const item = { id: uid(), month: mKey, date: new Date().toISOString(), desc, cat, value, conta };
+  try{
+    await callScript('POST', { action: 'addExpense', item });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); return; }
+  document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-value').value = '';
+  await loadFromSheet();
+}
+
+async function addIncome(){
+  const desc = document.getElementById('inc-desc').value.trim() || 'entrada';
+  const value = parseFloat(document.getElementById('inc-value').value);
+  const cat = document.getElementById('inc-cat').value;
+  const conta = document.getElementById('inc-conta').value;
+  if(!value || value <= 0) return;
+  const mKey = monthKey(currentMonth);
+  const item = { id: uid(), month: mKey, date: new Date().toISOString(), desc, cat, value, conta };
+  try{
+    await callScript('POST', { action: 'addIncome', item });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); return; }
+  document.getElementById('inc-desc').value = '';
+  document.getElementById('inc-value').value = '';
+  await loadFromSheet();
+}
+
+async function removeExpense(id){
+  try{ await callScript('POST', { action: 'deleteExpense', id }); } catch(e){}
+  await loadFromSheet();
+}
+async function removeIncome(id){
+  try{ await callScript('POST', { action: 'deleteIncome', id }); } catch(e){}
+  await loadFromSheet();
+}
+
+async function updateSavings(){
+  savingsGoal.target = parseFloat(document.getElementById('save-target').value) || 0;
+  savingsGoal.current = parseFloat(document.getElementById('save-current').value) || 0;
+  try{
+    await callScript('POST', { action: 'saveSavings', savings: savingsGoal });
+    setConnStatus(true);
+  } catch(e){ setConnStatus(false); }
+  renderSavings();
+}
+
+function renderSavings(){
+  const pct = savingsGoal.target > 0 ? Math.min(100, (savingsGoal.current/savingsGoal.target)*100) : 0;
+  document.getElementById('savings-fill').style.width = pct + '%';
+  document.getElementById('savings-label').textContent =
+    savingsGoal.target > 0 ? `${pct.toFixed(0)}% — ${fmt(savingsGoal.current)} de ${fmt(savingsGoal.target)}` : 'defina uma meta';
+}
+
+function changeMonth(delta){
+  currentMonth.setMonth(currentMonth.getMonth() + delta);
+  loadFromSheet();
+}
+
+async function loadFromSheet(){
+  const mKey = monthKey(currentMonth);
+  if(!scriptUrl){
+    setConnStatus(false);
+    renderAccounts();
+    renderAll();
+    return;
+  }
+  try{
+    const data = await callScript('GET', { action: 'getData', month: mKey });
+    if(data.config) budgetConfig = data.config;
+    if(data.savings) savingsGoal = data.savings;
+    accounts = data.accounts || [];
+    expensesCache[mKey] = data.expenses || [];
+    incomesCache[mKey] = data.incomes || [];
+    setConnStatus(true);
+    buildCatLimitInputs();
+    renderAccounts();
+    document.getElementById('save-target').value = savingsGoal.target || '';
+    document.getElementById('save-current').value = savingsGoal.current || '';
+    renderSavings();
+    renderAll();
+  } catch(e){
+    setConnStatus(false);
+  }
+}
+
+function accountName(id){
+  const a = accounts.find(x => x.id === id);
+  return a ? a.name : '';
+}
+
+function renderAll(){
+  const mKey = monthKey(currentMonth);
+  const expenses = expensesCache[mKey] || [];
+  const incomes = incomesCache[mKey] || [];
+
+  document.getElementById('month-label').textContent = monthLabel(currentMonth);
+  document.getElementById('receipt-month').textContent = monthLabel(currentMonth).toUpperCase();
+
+  const incEl = document.getElementById('receipt-incomes');
+  incEl.innerHTML = incomes.length === 0
+    ? '<div class="empty">nenhuma entrada lançada ainda</div>'
+    : incomes.map(e => `
+      <div class="item pos">
+        <span class="desc">${e.desc}<span class="cat">${e.cat}${e.conta ? ' · ' + accountName(e.conta) : ''}</span></span>
+        <span class="val">+${fmt(e.value)}</span>
+        <button class="del-x" onclick="removeIncome('${e.id}')">✕</button>
+      </div>
+    `).join('');
+
+  const expEl = document.getElementById('receipt-items');
+  expEl.innerHTML = expenses.length === 0
+    ? '<div class="empty">nenhum gasto lançado ainda</div>'
+    : expenses.map(e => `
+      <div class="item neg">
+        <span class="desc">${e.desc}<span class="cat">${e.cat}${e.conta ? ' · ' + accountName(e.conta) : ''}</span></span>
+        <span class="val">-${fmt(e.value)}</span>
+        <button class="del-x" onclick="removeExpense('${e.id}')">✕</button>
+      </div>
+    `).join('');
+
+  const totalGasto = expenses.reduce((s,e) => s + Number(e.value), 0);
+  const totalEntrada = incomes.reduce((s,e) => s + Number(e.value), 0);
+  const saldo = totalEntrada - totalGasto;
+
+  document.getElementById('receipt-total').textContent = fmt(totalGasto);
+  document.getElementById('receipt-income-total').textContent = fmt(totalEntrada);
+  const saldoEl = document.getElementById('receipt-saldo');
+  saldoEl.textContent = fmt(saldo);
+  saldoEl.style.color = saldo >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const barsEl = document.getElementById('bars-container');
+  barsEl.innerHTML = CATEGORIES.map(c => {
+    const spent = expenses.filter(e => e.cat === c).reduce((s,e)=>s+Number(e.value),0);
+    const limit = budgetConfig.limits[c] || 0;
+    const pct = limit > 0 ? Math.min(100, (spent/limit)*100) : (spent > 0 ? 100 : 0);
+    const over = limit > 0 && spent > limit;
+    return `
+      <div class="bar-row">
+        <div class="labels">
+          <span class="name">${c}</span>
+          <span class="amt">${fmt(spent)}${limit > 0 ? ' / ' + fmt(limit) : ''}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>
+      </div>
+    `;
+  }).join('');
+
+  const msgEl = document.getElementById('summary-msg');
+  if(!scriptUrl){
+    msgEl.textContent = 'Configure a URL do Apps Script acima pra começar a lançar.';
+    msgEl.style.color = '';
+  } else if(totalEntrada === 0 && totalGasto === 0){
+    msgEl.textContent = 'Nenhuma entrada ou gasto neste mês ainda.';
+    msgEl.style.color = '';
+  } else {
+    msgEl.textContent = saldo >= 0
+      ? `Saldo do mês: ${fmt(saldo)}`
+      : `Atenção: gastos passaram as entradas em ${fmt(-saldo)}`;
+    msgEl.style.color = saldo >= 0 ? '#8fbf9f' : '#d98a7a';
+  }
+}
+
+async function init(){
+  buildCatSelect();
+  buildCatLimitInputs();
+
+  const savedUrl = await localGet('apps-script-url');
+  if(savedUrl){
+    scriptUrl = savedUrl;
+    document.getElementById('script-url').value = savedUrl;
+  }
+  await loadFromSheet();
+}
+
+init();
+</script>
+</body>
+</html>
